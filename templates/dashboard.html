@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G-DES Secure Vault - Cyberpunk Edition</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Link to the separated Cyberpunk CSS stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- STYLIZED BOOT/LOADING SCREEN -->
+    <div id="loading-screen">
+        <div class="loader-box">
+            <i class="bi bi-shield-lock text-info fs-1 d-block mb-3 loader-spinner"></i>
+            <h4 class="text-white fw-bold mb-1 loader-title">G-DES // CORE_BOOT</h4>
+            <p class="text-muted small mb-4" id="loader-status">ESTABLISHING_SECURE_CONNECTION...</p>
+            <div class="loader-bar-outer mb-3">
+                <div class="loader-bar-inner" id="loader-bar-fill"></div>
+            </div>
+            <div class="mono-text text-info small loader-pct" id="loader-pct">0%</div>
+        </div>
+    </div>
+
+    <!-- PREVIEW PANEL SET ROLE STATE -->
+    <div class="simulation-bar py-2 px-3 text-center">
+        <span class="fw-bold"><i class="bi bi-cpu-fill me-1"></i> [PREVIEW PANEL] SET ROLE STATE:</span>
+        <a href="/set_role/Admin" class="btn btn-sm btn-outline-info mx-2 py-0 px-2"><i class="bi bi-shield-lock-fill"></i> Admin View</a>
+        <a href="/set_role/Employee" class="btn btn-sm btn-outline-danger mx-2 py-0 px-2"><i class="bi bi-person-fill"></i> Employee View</a>
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-custom py-3">
+        <div class="container">
+            <span class="navbar-brand text-white fw-bold d-flex align-items-center brand-glow">
+                <i class="bi bi-terminal-fill me-2 text-info"></i> G-DES // SECURE_VAULT
+            </span>
+            <div class="ms-auto d-flex align-items-center">
+                <div class="me-3 text-end d-none d-sm-block">
+                    <div class="small text-muted user-label">CURRENT_USER</div>
+                    <span class="fw-bold text-white font-monospace">
+                        {{ 'admin_account' if current_role == 'Admin' else 'employee_staff' }}
+                    </span>
+                </div>
+                <div class="me-3">
+                    {% if current_role == 'Admin' %}
+                    <span class="badge bg-transparent border px-3 py-2 badge-admin" id="role-badge">
+                        <i class="bi bi-shield-fill"></i> ADMIN_PRIVILEGES
+                    </span>
+                    {% else %}
+                    <span class="badge bg-transparent border px-3 py-2 badge-employee" id="role-badge">
+                        <i class="bi bi-person-badge-fill"></i> EMPLOYEE_PROFILE
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <!-- Added Secure Logout Hyperlink -->
+                <a href="/logout" class="btn btn-cyber-magenta btn-sm py-1"><i class="bi bi-power"></i> LOGOUT</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container my-5">
+        
+        <div class="row mb-5 align-items-center">
+            <div class="col-md-8">
+                <h1 class="fw-black mb-1 text-info title-glow">CRYPTOGRAPHIC_STORAGE_VAULT</h1>
+                <p class="text-muted mb-0">Hardware-accelerated G-DES (Generalized DES) symmetric-block node control panel.</p>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <span class="mono-text meta-text small"><span class="status-indicator me-2"></span> VAULT_STATUS: ONLINE</span>
+                <br>
+                <span class="mono-text meta-text small">SYS_TIME: 2026-06-07</span>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            
+            <!-- SECTION A: Uploader -->
+            <div class="col-lg-4 {% if current_role != 'Admin' %}d-none{% endif %}" id="uploader-section">
+                <div class="card card-custom card-magenta p-4 h-100">
+                    <h5 class="fw-bold mb-3 card-header-magenta"><i class="bi bi-shield-upload me-2"></i>INIT_ENCRYPTION</h5>
+                    <p class="text-muted small">Stream raw data streams into the G-DES cipher matrix. Block integrity is checked on finish.</p>
+                    
+                    <form action="/upload" method="POST" enctype="multipart/form-data" class="mt-3">
+                        <div class="mb-3">
+                            <label class="form-label" for="fileInput">FILE_PAYLOAD</label>
+                            <input class="form-control form-control-cyber" type="file" name="file" id="fileInput" required title="Choose file payload to encrypt">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="keyInput">CIPHER_KEY (G-DES HEX)</label>
+                            <input type="text" class="form-control form-control-cyber font-monospace" id="keyInput" value="3F7A1B9C4E8D2F5A" readonly title="Static Symmetric cryptographic key">
+                        </div>
+                        <button type="submit" class="btn btn-cyber-magenta w-100 py-2 mt-2"><i class="bi bi-lock-fill me-1"></i> EXECUTE_GDES_CIPHER</button>
+                    </form>
+
+                    <div class="mt-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="form-label small fw-bold mb-0">CIPHER_MATRIX_OUTPUT</span>
+                            <span class="small px-2 border rounded console-header-label">STREAMING</span>
+                        </div>
+                        <div class="p-3 bg-black rounded border text-success font-monospace console-box-style" id="console-logs">
+                            [SYS] G-DES crypto pipeline built.<br>
+                            [SYS] Key blocks loaded into cache.<br>
+                            [SYS] Node listening for uploads...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION B: Repository -->
+            <div class="col-lg-{{ '8' if current_role == 'Admin' else '12' }}" id="repository-section">
+                <div class="card card-custom card-cyan p-4 h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold mb-0 card-header-cyan"><i class="bi bi-folder-symlink-fill me-2"></i>PERSISTENT_VAULT_VOL</h5>
+                        <span class="badge bg-transparent border text-info badge-secured">STORAGE_SECURED</span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-custom table-hover align-middle">
+                            <thead>
+                                <tr class="text-muted small">
+                                    <th>SECURE_NODE_ITEM</th>
+                                    <th>BLOCKS</th>
+                                    <th>SIZE</th>
+                                    <th>ACCESS_POLICY</th>
+                                    <th class="text-end">DECRYPT</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if files %}
+                                    {% for file in files %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-file-earmark-lock2-fill fs-4 me-2 text-info lock-icon-glow"></i>
+                                                <div>
+                                                    <div class="fw-bold">{{ file.original_name }}</div>
+                                                    <div class="hash-text small font-monospace">SHA256: {{ file.hash[:16] }}...{{ file.hash[-3:] }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td><span class="badge bg-transparent border border-info text-info">{{ file.blocks }} Blocks</span></td>
+                                        <td><span class="mono-text">{{ file.size }}</span></td>
+                                        <td><span class="badge bg-transparent border text-danger badge-clearance">ADMIN_CLEARANCE</span></td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-cyber-cyan py-1 px-3" onclick="triggerDecrypt('{{ file.original_name }}')">
+                                                <i class="bi bi-unlock"></i> DECRYPT
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">No encrypted documents in server volume.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ACCESS DENIED MODAL -->
+    <div class="access-denied-overlay d-none" id="deniedOverlay">
+        <div class="access-denied-box">
+            <i class="bi bi-shield-fill-x text-danger fs-1 mb-3 icon-denied-glow"></i>
+            <h3 class="fw-bold text-danger mb-2 denied-title-glow">ACCESS DENIED</h3>
+            <h5 class="text-white mb-3 font-monospace">KEY RECONCILIATION FAULT</h5>
+            <p class="text-muted small mb-4">Your credentials (Employee) failed RBAC constraint checks. G-DES S-box components remain uninitialized.</p>
+            <div class="p-2 bg-black text-danger font-monospace rounded text-start mb-4 border border-danger-subtle error-overlay-console">
+                [ERR_ACCESS_DENIED] Violation tracked to central node.
+            </div>
+            <button class="btn btn-cyber-magenta w-100" onclick="closeDeniedOverlay()">Acknowledge</button>
+        </div>
+    </div>
+
+    <!-- SUCCESS DECRYPT MODAL -->
+    <div class="access-denied-overlay d-none" id="successOverlay">
+        <div class="access-denied-box success-overlay-box">
+            <i class="bi bi-shield-fill-check text-success fs-1 mb-3 success-overlay-icon"></i>
+            <h3 class="fw-bold text-success mb-2 success-title-glow">DECRYPT_SUCCESS</h3>
+            <h5 class="text-white mb-3 font-monospace">INTEGRITY CHECK PASS</h5>
+            <p class="text-muted small mb-4">G-DES plaintext reconstructed. Hashing matches metadata. Commencing file download.</p>
+            <button class="btn btn-cyber-cyan w-100 success-btn-glow" id="successConfirmBtn">CONTINUE</button>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Passing the active server-side role configurations cleanly to the external JS -->
+    <script>
+        const activeRole = "{{ current_role }}";
+    </script>
+    
+    <!-- Link to the separated script file -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

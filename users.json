@@ -1,0 +1,12 @@
+{
+    "admin_account": {
+        "salt": "n3on_salt_1",
+        "password_hash": "7b2a286a1639dec1f6cda89866bd2567de47559220e9c24171296cf845016fb0",
+        "role": "Admin"
+    },
+    "employee_staff": {
+        "salt": "m4g3nta_salt_2",
+        "password_hash": "7c4285004a38deaffc32bd45deb894c3705c50214001b8b9035567b4841e0975",
+        "role": "Employee"
+    }
+}
