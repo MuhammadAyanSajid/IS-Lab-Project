@@ -54,8 +54,7 @@ def save_vault(vault_data):
 # Gateway Landing Route
 @app.route('/')
 def home():
-    if 'username' in session:
-        return redirect(url_for('dashboard'))
+    session.clear() 
     return render_template('login.html')
 
 # Secure Password Verification Logic
@@ -105,8 +104,9 @@ def dashboard():
         files=files, 
         current_role=session.get('role', 'Admin'), 
         current_user=session.get('username'),
-        employees=employees # Passed directly to the frontend template
+        employees=employees
     )
+
 # Admin-Only Route: Register New Employees
 @app.route('/add_user', methods=['POST'])
 def add_user():
@@ -246,7 +246,6 @@ def decrypt(filename):
         return "File metadata not found in database.", 404
         
     # Hybrid RBAC + DAC Verification Check:
-    # Allowed if User is Admin OR if User's specific username is explicitly allowed
     allowed_list = target_meta.get('allowed_users', [])
     if session.get('role') != 'Admin' and session.get('username') not in allowed_list:
         return "Access Denied: You do not possess decryption clearances.", 403
@@ -270,6 +269,63 @@ def decrypt(filename):
         as_attachment=True,
         download_name=target_meta['original_name']
     )
+
+# Cryptographic Payload Inspector API (Hex view vs Decrypted Plaintext)
+@app.route('/inspect/<filename>')
+def inspect(filename):
+    if 'username' not in session:
+        return jsonify({"error": "Session expired"}), 401
+        
+    vault_data = load_vault()
+    target_meta = next((item for item in vault_data if item['original_name'] == filename), None)
+    
+    if not target_meta:
+        return jsonify({"error": "File metadata not found."}), 404
+        
+    encrypted_path = os.path.join(ENCRYPTED_DIR, target_meta['encrypted_filename'])
+    if not os.path.exists(encrypted_path):
+        return jsonify({"error": "Encrypted file payload missing from storage."}), 404
+        
+    with open(encrypted_path, 'rb') as f:
+        encrypted_bytes = f.read()
+        
+    # Format the first 256 bytes as a structured hex dump for visual demonstration
+    preview_bytes = encrypted_bytes[:256]
+    hex_dump = " ".join(f"{b:02X}" for b in preview_bytes)
+    if len(encrypted_bytes) > 256:
+        hex_dump += " ... [TRUNCATED]"
+        
+    # DAC Access Control Check
+    allowed_list = target_meta.get('allowed_users', [])
+    is_authorized = (session.get('role') == 'Admin') or (session.get('username') in allowed_list)
+    
+    if not is_authorized:
+        # If unauthorized, return only the ciphertext (proving it is secure) but block plaintext
+        return jsonify({
+            "original_name": filename,
+            "ciphertext_hex": hex_dump,
+            "plaintext": "ACCESS_DENIED: Decryption Key Locked. Insufficient clearances.",
+            "authorized": False
+        })
+        
+    # If authorized, decrypt the ciphertext to display the plaintext
+    try:
+        cipher = GDES(GDES_KEY)
+        decrypted_bytes = cipher.decrypt(encrypted_bytes)
+        try:
+            plaintext = decrypted_bytes.decode('utf-8', errors='replace')
+        except Exception:
+            # Fallback representation if it's a binary file
+            plaintext = "[Binary Stream Payload]\n" + " ".join(f"{b:02X}" for b in decrypted_bytes[:256])
+    except Exception as e:
+        plaintext = f"DECRYPTION_ERROR: Failed to run round functions. {str(e)}"
+        
+    return jsonify({
+        "original_name": filename,
+        "ciphertext_hex": hex_dump,
+        "plaintext": plaintext,
+        "authorized": True
+    })
 
 @app.route('/logout')
 def logout():

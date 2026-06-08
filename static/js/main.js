@@ -1,16 +1,9 @@
 // DOM Boot-up progress bar sequence
 window.addEventListener('DOMContentLoaded', () => {
     const loader = document.getElementById('loading-screen');
-    
-    // Check sessionStorage to see if the system has already run the boot decryption sequence
-    if (sessionStorage.getItem('vault_loaded')) {
-        // Immediately hide loading overlay on sub-loads to prevent flashes of background styles
-        loader.classList.add('d-none');
-        return;
-    }
+    if (!loader) return;
 
-    // Run the decryption loading animation on initial page boot
-    loader.classList.remove('d-none');
+    // Run the G-DES boot animation sequence on every page load
     const progressBar = document.getElementById('loader-bar-fill');
     const progressPct = document.getElementById('loader-pct');
     const statusTxt = document.getElementById('loader-status');
@@ -32,8 +25,7 @@ window.addEventListener('DOMContentLoaded', () => {
             currentStep++;
             setTimeout(runLoader, 550);
         } else {
-            // Save state to sessionStorage for the active browser tab session
-            sessionStorage.setItem('vault_loaded', 'true');
+            // Fade out the overlay cleanly
             loader.classList.add('fade-out');
             setTimeout(() => {
                 loader.classList.add('d-none');
@@ -43,7 +35,7 @@ window.addEventListener('DOMContentLoaded', () => {
     setTimeout(runLoader, 400); 
 });
 
-// Controls modal displaying completely using Bootstrap class transitions
+// Controls decryption modal displaying completely using Bootstrap class transitions
 function triggerDecrypt(filename, isAllowed) {
     const deniedOverlay = document.getElementById('deniedOverlay');
     const successOverlay = document.getElementById('successOverlay');
@@ -61,6 +53,38 @@ function triggerDecrypt(filename, isAllowed) {
     }
 }
 
+// Fetches the raw ciphertext hex and plaintext from the backend to display on the dashboard
+function triggerInspect(filename) {
+    fetch(`/inspect/${encodeURIComponent(filename)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            
+            document.getElementById('inspect-title').innerText = `G-DES // INSPECT: ${data.original_name}`;
+            document.getElementById('inspect-ciphertext').innerText = data.ciphertext_hex;
+            
+            const plainPanel = document.getElementById('inspect-plaintext');
+            plainPanel.innerText = data.plaintext;
+            
+            // Adjust panel style based on dynamic authorization clearances
+            if (data.authorized) {
+                plainPanel.className = "code-panel plaintext-view font-monospace";
+            } else {
+                plainPanel.className = "code-panel plaintext-denied font-monospace";
+            }
+            
+            const inspectOverlay = document.getElementById('inspectOverlay');
+            inspectOverlay.classList.remove('d-none');
+            inspectOverlay.classList.add('d-flex');
+        })
+        .catch(err => {
+            console.error("Cryptographic inspector failure:", err);
+        });
+}
+
 function closeDeniedOverlay() { 
     const deniedOverlay = document.getElementById('deniedOverlay');
     deniedOverlay.classList.add('d-none');
@@ -73,12 +97,27 @@ function closeSuccessOverlay() {
     successOverlay.classList.remove('d-flex');
 }
 
-// Event Delegation: Clean, linter-friendly method to capture click events from templates
+function closeInspectOverlay() {
+    const inspectOverlay = document.getElementById('inspectOverlay');
+    inspectOverlay.classList.add('d-none');
+    inspectOverlay.classList.remove('d-flex');
+}
+
+// Event Delegation: Clean method to capture click events from templates without syntax parsing warnings
 document.addEventListener('click', (event) => {
-    const trigger = event.target.closest('.decrypt-trigger');
-    if (trigger) {
-        const filename = trigger.getAttribute('data-filename');
-        const isAllowed = trigger.getAttribute('data-allowed') === 'true';
+    // Check Decrypt trigger
+    const decryptTrigger = event.target.closest('.decrypt-trigger');
+    if (decryptTrigger) {
+        const filename = decryptTrigger.getAttribute('data-filename');
+        const isAllowed = decryptTrigger.getAttribute('data-allowed') === 'true';
         triggerDecrypt(filename, isAllowed);
+        return;
+    }
+    
+    // Check Inspect trigger
+    const inspectTrigger = event.target.closest('.inspect-trigger');
+    if (inspectTrigger) {
+        const filename = inspectTrigger.getAttribute('data-filename');
+        triggerInspect(filename);
     }
 });

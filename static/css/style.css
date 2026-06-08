@@ -218,3 +218,42 @@ select.form-control-cyber option {
     background-color: #111827; /* Dark background for options */
     color: var(--text-primary);
 }
+
+/* Cryptographic Payload Inspector */
+.inspect-box {
+    max-width: 850px !important; /* Expanded width for split screen */
+    border: 2px solid var(--neon-cyan);
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.3), inset 0 0 15px rgba(0, 240, 255, 0.1);
+}
+
+.code-panel {
+    background-color: #000000;
+    border: 1px solid var(--neon-purple);
+    border-radius: 6px;
+    height: 250px;
+    overflow-y: auto;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    font-size: 0.85rem;
+    padding: 1rem;
+}
+
+.ciphertext-view {
+    color: var(--neon-cyan) !important;
+    text-shadow: 0 0 2px rgba(0, 240, 255, 0.3);
+}
+
+.plaintext-view {
+    color: var(--neon-green) !important;
+    text-shadow: 0 0 2px rgba(57, 255, 20, 0.3);
+}
+
+.plaintext-denied {
+    color: var(--neon-magenta) !important;
+    text-shadow: 0 0 3px var(--neon-magenta);
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}

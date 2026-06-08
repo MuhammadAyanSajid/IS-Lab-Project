@@ -14,8 +14,8 @@
 </head>
 <body>
 
-    <!-- STYLIZED BOOT/LOADING SCREEN (Default d-none to prevent FOLS) -->
-    <div id="loading-screen" class="d-none">
+    <!-- STYLIZED BOOT/LOADING SCREEN -->
+    <div id="loading-screen">
         <div class="loader-box">
             <i class="bi bi-shield-lock text-info fs-1 d-block mb-3 loader-spinner"></i>
             <h4 class="text-white fw-bold mb-1 loader-title">G-DES // CORE_BOOT</h4>
@@ -26,13 +26,6 @@
             <div class="mono-text text-info small loader-pct" id="loader-pct">0%</div>
         </div>
     </div>
-    
-    <!-- Micro-script to instantly evaluate whether the loader needs to be shown, avoiding flash of style templates -->
-    <script>
-        if (!sessionStorage.getItem('vault_loaded')) {
-            document.getElementById('loading-screen').classList.remove('d-none');
-        }
-    </script>
 
     <!-- Navigation Bar -->
     <nav class="navbar navbar-custom py-3">
@@ -158,7 +151,7 @@
                                     <th>BLOCKS</th>
                                     <th>SIZE</th>
                                     <th>ACCESS_POLICY</th>
-                                    <th class="text-end">DECRYPT</th>
+                                    <th class="text-end">DECRYPT_ACTIONS</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -187,7 +180,7 @@
                                             {% endif %}
                                             
                                             {% if current_role == 'Admin' %}
-                                            <!-- Dynamic Dropdown Form for DAC permissions -->
+                                            <!-- Mini-Grant Form for DAC permissions -->
                                             <form action="/grant_access" method="POST" class="d-inline-flex align-items-center ms-2">
                                                 <input type="hidden" name="filename" value="{{ file.original_name }}">
                                                 <select name="target_user" class="form-control form-control-cyber form-control-sm grant-input text-center font-monospace" required title="Select Employee user ID to grant access">
@@ -201,11 +194,18 @@
                                             {% endif %}
                                         </td>
                                         <td class="text-end">
-                                            <!-- Clean HTML5 data-attributes to prevent JS parsing warnings inside templates -->
-                                            <button class="btn btn-sm btn-cyber-cyan py-1 px-3 decrypt-trigger" 
+                                            <!-- Action Suite: Clean Event Delegation data-attributes -->
+                                            <button class="btn btn-sm btn-outline-info py-1 px-2 me-1 inspect-trigger" 
+                                                    data-filename="{{ file.original_name }}"
+                                                    title="Inspect G-DES Ciphertext and Plaintext">
+                                                <i class="bi bi-eye"></i> INSPECT
+                                            </button>
+                                            
+                                            <button class="btn btn-sm btn-cyber-cyan py-1 px-2 decrypt-trigger" 
                                                     data-filename="{{ file.original_name }}" 
-                                                    data-allowed="{{ 'true' if (current_role == 'Admin' or current_user in file.allowed_users) else 'false' }}">
-                                                <i class="bi bi-unlock"></i> DECRYPT
+                                                    data-allowed="{{ 'true' if (current_role == 'Admin' or current_user in file.allowed_users) else 'false' }}"
+                                                    title="Decrypt and Download original file">
+                                                <i class="bi bi-unlock"></i> DOWNLOAD
                                             </button>
                                         </td>
                                     </tr>
@@ -246,6 +246,26 @@
             <h5 class="text-white mb-3 font-monospace">INTEGRITY CHECK PASS</h5>
             <p class="text-muted small mb-4">G-DES plaintext reconstructed. Hashing matches metadata. Commencing file download.</p>
             <button class="btn btn-cyber-cyan w-100 success-btn-glow" id="successConfirmBtn">CONTINUE</button>
+        </div>
+    </div>
+
+    <!-- CRYPTOGRAPHIC INSPECTOR OVERLAY -->
+    <div class="access-denied-overlay d-none" id="inspectOverlay">
+        <div class="access-denied-box inspect-box p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-info text-start" id="inspect-title">G-DES // PAYLOAD_INSPECTOR</h5>
+                <button class="btn btn-cyber-magenta btn-sm py-1 px-3" onclick="closeInspectOverlay()">CLOSE</button>
+            </div>
+            <div class="row g-3 text-start">
+                <div class="col-md-6">
+                    <label class="form-label">CIPHERTEXT (G-DES HEX DUMP)</label>
+                    <div class="code-panel ciphertext-view font-monospace" id="inspect-ciphertext"></div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">DECRYPTED PLAINTEXT</label>
+                    <div class="code-panel plaintext-view font-monospace" id="inspect-plaintext"></div>
+                </div>
+            </div>
         </div>
     </div>
 
