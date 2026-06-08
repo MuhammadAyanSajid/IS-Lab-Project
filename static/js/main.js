@@ -33,6 +33,9 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
     setTimeout(runLoader, 400); 
+
+    // Initialize the real-time cyberpunk system clock
+    startCyberClock();
 });
 
 // Controls decryption modal displaying completely using Bootstrap class transitions
@@ -101,6 +104,28 @@ function closeInspectOverlay() {
     const inspectOverlay = document.getElementById('inspectOverlay');
     inspectOverlay.classList.add('d-none');
     inspectOverlay.classList.remove('d-flex');
+}
+
+// Real-Time Ticking System Clock
+function startCyberClock() {
+    const clockEl = document.getElementById('cyber-clock');
+    if (!clockEl) return;
+    
+    function updateClock() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        
+        // Output ticking standard timestamp format
+        clockEl.textContent = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+    
+    updateClock();
+    setInterval(updateClock, 1000); // Trigger callback once per second
 }
 
 // Event Delegation: Clean method to capture click events from templates without syntax parsing warnings

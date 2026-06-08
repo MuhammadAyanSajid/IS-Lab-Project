@@ -170,13 +170,23 @@
                                         <td><span class="badge bg-transparent border border-info text-info">{{ file.blocks }} Blocks</span></td>
                                         <td><span class="mono-text">{{ file.size }}</span></td>
                                         <td>
-                                            <!-- Access Policy Field (Lists users + shows dynamic Admin Form) -->
+                                            <!-- Access Policy Field (Dynamic Employee Badges with Revocation triggers) -->
                                             {% if not file.allowed_users %}
                                                 <span class="badge bg-transparent border text-danger badge-clearance">ADMIN_CLEARANCE</span>
                                             {% else %}
-                                                <span class="badge bg-transparent border text-warning border-warning policy-glow">
-                                                    ALLOWED: {{ file.allowed_users | join(', ') }}
-                                                </span>
+                                                {% for user in file.allowed_users %}
+                                                    <span class="badge bg-transparent border text-warning border-warning policy-glow me-1">
+                                                        {{ user }}
+                                                        {% if current_role == 'Admin' %}
+                                                        <!-- Compact, warning-free inline form to trigger access revocation -->
+                                                        <form action="/revoke_access" method="POST" class="d-inline ms-1">
+                                                            <input type="hidden" name="filename" value="{{ file.original_name }}">
+                                                            <input type="hidden" name="target_user" value="{{ user }}">
+                                                            <button type="submit" class="btn-link-cyber p-0 border-0 bg-transparent text-danger small" title="Revoke access clearance for {{ user }}">&times;</button>
+                                                        </form>
+                                                        {% endif %}
+                                                    </span>
+                                                {% endfor %}
                                             {% endif %}
                                             
                                             {% if current_role == 'Admin' %}

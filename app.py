@@ -191,6 +191,41 @@ def grant_access():
         
     return redirect(url_for('dashboard'))
 
+# Admin-Only Route: Revoke File-Specific Access from specific Employees (DAC / ACL)
+@app.route('/revoke_access', methods=['POST'])
+def revoke_access():
+    if session.get('role') != 'Admin':
+        return "Access Denied: Unauthorized administrative request.", 403
+
+    filename = request.form.get('filename')
+    target_user = request.form.get('target_user')
+    
+    if not filename or not target_user:
+        flash("Revocation failed: Missing inputs.", "danger")
+        return redirect(url_for('dashboard'))
+        
+    target_user_clean = target_user.strip().lower()
+    
+    vault_data = load_vault()
+    file_found = False
+    
+    for file in vault_data:
+        if file['original_name'] == filename:
+            file_found = True
+            if 'allowed_users' in file and target_user_clean in file['allowed_users']:
+                file['allowed_users'].remove(target_user_clean)
+                flash(f"Access revoked: '{target_user_clean}' can no longer decrypt '{filename}'.", "success")
+            else:
+                flash(f"User '{target_user_clean}' did not possess access clearance.", "danger")
+            break
+            
+    if not file_found:
+        flash("Revocation failed: File not found.", "danger")
+    else:
+        save_vault(vault_data)
+        
+    return redirect(url_for('dashboard'))
+
 # Admin-Only File Uploader Route
 @app.route('/upload', methods=['POST'])
 def upload():

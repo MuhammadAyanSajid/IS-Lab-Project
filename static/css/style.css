@@ -257,3 +257,18 @@ select.form-control-cyber option {
     align-items: center;
     text-align: center;
 }
+
+/* Cyberpunk Link Buttons for Revoking Access */
+.btn-link-cyber {
+    text-decoration: none;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1.1rem;
+    line-height: 1;
+    vertical-align: middle;
+    transition: color 0.15s ease;
+}
+
+.btn-link-cyber:hover {
+    color: #ff0055 !important;
+}

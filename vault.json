@@ -41,6 +41,7 @@
         "encrypted_filename": "cf5302d3-dd4c-4008-9d79-2f33dc80a2ad.gdes",
         "hash": "10458429ef64ef5eb448e5225f2a96c160310013b112fad8da9acc97f8cdc496",
         "blocks": 317,
-        "size": "4.9 KB"
+        "size": "4.9 KB",
+        "allowed_users": []
     }
 ]
