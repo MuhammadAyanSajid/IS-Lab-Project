@@ -1,5 +1,16 @@
 // DOM Boot-up progress bar sequence
 window.addEventListener('DOMContentLoaded', () => {
+    const loader = document.getElementById('loading-screen');
+    
+    // Check sessionStorage to see if the system has already run the boot decryption sequence
+    if (sessionStorage.getItem('vault_loaded')) {
+        // Immediately hide loading overlay on sub-loads to prevent flashes of background styles
+        loader.classList.add('d-none');
+        return;
+    }
+
+    // Run the decryption loading animation on initial page boot
+    loader.classList.remove('d-none');
     const progressBar = document.getElementById('loader-bar-fill');
     const progressPct = document.getElementById('loader-pct');
     const statusTxt = document.getElementById('loader-status');
@@ -21,37 +32,22 @@ window.addEventListener('DOMContentLoaded', () => {
             currentStep++;
             setTimeout(runLoader, 550);
         } else {
-            document.getElementById('loading-screen').classList.add('fade-out');
+            // Save state to sessionStorage for the active browser tab session
+            sessionStorage.setItem('vault_loaded', 'true');
+            loader.classList.add('fade-out');
+            setTimeout(() => {
+                loader.classList.add('d-none');
+            }, 800);
         }
     }
     setTimeout(runLoader, 400); 
 });
-
-// Dynamic Preview Role Toggle (Class-based transitions)
-function setRole(role) {
-    const badge = document.getElementById('role-badge');
-    const uploaderSection = document.getElementById('uploader-section');
-    const repositorySection = document.getElementById('repository-section');
-
-    if (role === "Admin") {
-        badge.className = "badge bg-transparent border px-3 py-2 badge-admin";
-        badge.innerHTML = '<i class="bi bi-shield-fill"></i> ADMIN_PRIVILEGES';
-        uploaderSection.classList.remove('d-none');
-        repositorySection.className = "col-lg-8";
-    } else {
-        badge.className = "badge bg-transparent border px-3 py-2 badge-employee";
-        badge.innerHTML = '<i class="bi bi-person-badge-fill"></i> EMPLOYEE_PROFILE';
-        uploaderSection.classList.add('d-none');
-        repositorySection.className = "col-lg-12";
-    }
-}
 
 // Controls modal displaying completely using Bootstrap class transitions
 function triggerDecrypt(filename) {
     const deniedOverlay = document.getElementById('deniedOverlay');
     const successOverlay = document.getElementById('successOverlay');
 
-    // activeRole is defined in the HTML file using Jinja2 injection
     if (activeRole !== "Admin") {
         deniedOverlay.classList.remove('d-none');
         deniedOverlay.classList.add('d-flex');

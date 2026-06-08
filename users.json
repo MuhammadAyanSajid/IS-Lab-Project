@@ -8,5 +8,10 @@
         "salt": "m4g3nta_salt_2",
         "password_hash": "7c4285004a38deaffc32bd45deb894c3705c50214001b8b9035567b4841e0975",
         "role": "Employee"
+    },
+    "nigga": {
+        "salt": "ca06e1d65d7d",
+        "password_hash": "6b6648063e94627c9694438b42dd19f45c056fc996ef4af0a94670acb0c109a9",
+        "role": "Employee"
     }
 }

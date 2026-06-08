@@ -3,7 +3,7 @@ import json
 import hashlib
 import uuid
 import io
-from flask import Flask, render_template, request, session, redirect, url_for, send_file, jsonify
+from flask import Flask, render_template, request, session, redirect, url_for, send_file, jsonify, flash
 from gdes import GDES
 
 app = Flask(__name__)
@@ -22,7 +22,7 @@ GDES_KEY = b"Cyb3rPnk"
 # Setup default credentials with salted hashes if users.json is missing
 def setup_users():
     if not os.path.exists(USERS_FILE):
-        # Hashing and salting configuration to meet authentication rubric requirements
+        # Initializing database configurations
         users = {
             "admin_account": {
                 "salt": "n3on_salt_1",
@@ -70,31 +70,22 @@ def login():
     with open(USERS_FILE, 'r') as f:
         users = json.load(f)
         
-    if username in users:
-        user_data = users[username]
+    username_clean = username.strip().lower()
+    
+    if username_clean in users:
+        user_data = users[username_clean]
         salt = user_data['salt']
         
-        # Verify hash matches (HMAC alignment)
+        # Verify salted hash
         input_hash = hashlib.sha256(password.encode() + salt.encode()).hexdigest()
         
         if input_hash == user_data['password_hash']:
             # Cryptographically sign session variables
-            session['username'] = username
+            session['username'] = username_clean
             session['role'] = user_data['role']
             return redirect(url_for('dashboard'))
             
     return render_template('login.html', error="ACCESS_DENIED: Invalid User ID or Passphrase.")
-
-# Dynamic role-switcher simulation to facilitate lab grading presentations
-@app.route('/set_role/<role>')
-def set_role(role):
-    if 'username' not in session:
-        return redirect(url_for('home'))
-        
-    if role in ['Admin', 'Employee']:
-        session['role'] = role
-        session['username'] = 'admin_account' if role == 'Admin' else 'employee_staff'
-    return redirect(url_for('dashboard'))
 
 @app.route('/dashboard')
 def dashboard():
@@ -102,6 +93,45 @@ def dashboard():
         return redirect(url_for('home'))
     files = load_vault()
     return render_template('dashboard.html', files=files, current_role=session.get('role', 'Admin'))
+
+# Admin-Only Route: Register New Employees
+@app.route('/add_user', methods=['POST'])
+def add_user():
+    # Server-Side RBAC Enforcement: Is the user an Admin?
+    if session.get('role') != 'Admin':
+        return "Access Denied: Unauthorized administrative request.", 403
+
+    username = request.form.get('username')
+    password = request.form.get('password')
+    
+    if not username or not password:
+        flash("Registration failed: Missing parameters.", "danger")
+        return redirect(url_for('dashboard'))
+        
+    username_clean = username.strip().lower()
+    
+    with open(USERS_FILE, 'r') as f:
+        users = json.load(f)
+        
+    if username_clean in users:
+        flash(f"Registration failed: User '{username_clean}' already exists.", "danger")
+        return redirect(url_for('dashboard'))
+        
+    # Generate unique salt and SHA-256 hash for the new Employee
+    new_salt = uuid.uuid4().hex[:12]
+    new_hash = hashlib.sha256(password.encode() + new_salt.encode()).hexdigest()
+    
+    users[username_clean] = {
+        "salt": new_salt,
+        "password_hash": new_hash,
+        "role": "Employee"
+    }
+    
+    with open(USERS_FILE, 'w') as f:
+        json.dump(users, f, indent=4)
+        
+    flash(f"User '{username_clean}' successfully registered as Employee.", "success")
+    return redirect(url_for('dashboard'))
 
 # Admin-Only File Uploader Route
 @app.route('/upload', methods=['POST'])
@@ -141,6 +171,7 @@ def upload():
     })
     save_vault(vault_data)
     
+    flash(f"File '{file.filename}' encrypted and stored in vault.", "success")
     return redirect(url_for('dashboard'))
 
 # Decrypt File Route (Verifies permissions and matches integrity hash)
