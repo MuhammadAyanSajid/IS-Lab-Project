@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>G-DES Secure Vault - Authentication Node</title>
+    <title>G-DES Secure Vault - Key Recovery</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
@@ -25,11 +25,12 @@
 </head>
 <body>
     <div class="login-container">
-        <div class="card card-custom card-cyan p-4 login-card">
+        <div class="card card-custom card-magenta p-4 login-card">
             <div class="text-center mb-4">
-                <i class="bi bi-terminal-fill text-info fs-1 brand-glow d-block mb-2"></i>
-                <h4 class="text-white fw-bold mb-1 brand-glow">G-DES // LOGIN</h4>
-                <p class="text-muted small">SYSTEM GATEWAY AUTHENTICATION</p>
+                <!-- Removed inline styles and utilized predefined custom stylesheet classes instead -->
+                <i class="bi bi-shield-fill-exclamation text-danger fs-1 d-block mb-2 icon-denied-glow"></i>
+                <h4 class="text-white fw-bold mb-1 brand-glow denied-title-glow">G-DES // RECOVERY</h4>
+                <p class="text-muted small">PASSPHRASE RECOVERY OVERRIDE</p>
             </div>
 
             <!-- Error message area -->
@@ -39,22 +40,26 @@
             </div>
             {% endif %}
 
-            <form action="/login" method="POST">
+            <form action="/forgot" method="POST">
                 <div class="mb-3">
                     <label class="form-label" for="usernameInput">NODE_USER_ID</label>
                     <input type="text" class="form-control form-control-cyber" name="username" id="usernameInput" required title="Enter your system username" placeholder="e.g., admin_account">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label" for="passwordInput">SECRET_PASSPHRASE</label>
-                    <input type="password" class="form-control form-control-cyber" name="password" id="passwordInput" required title="Enter your system passphrase" placeholder="••••••••">
+                    <label class="form-label" for="recoveryInput">OFFLINE_RECOVERY_KEY</label>
+                    <input type="text" class="form-control form-control-cyber font-monospace" name="recovery_key" id="recoveryInput" required title="Enter your 16-character recovery key" placeholder="GDES-XXXX-XXXX-XXXX">
                 </div>
-                <button type="submit" class="btn btn-cyber-cyan w-100 py-2 mt-3">
-                    <i class="bi bi-key-fill"></i> AUTHENTICATE_USER
+                <div class="mb-3">
+                    <label class="form-label" for="passwordInput">NEW_SECRET_PASSPHRASE</label>
+                    <input type="password" class="form-control form-control-cyber" name="new_password" id="passwordInput" required title="Enter your new system passphrase" placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-cyber-magenta w-100 py-2 mt-3">
+                    <i class="bi bi-arrow-counterclockwise"></i> RESET_PASSPHRASE
                 </button>
             </form>
             
             <div class="text-center mt-3">
-                <a href="/forgot" class="btn-link-cyber text-info small font-monospace">FORGOT_PASSPHRASE?</a>
+                <a href="/" class="btn-link-cyber text-info small font-monospace">RETURN_TO_LOGIN</a>
             </div>
         </div>
     </div>

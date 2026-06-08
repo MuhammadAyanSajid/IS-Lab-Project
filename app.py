@@ -4,8 +4,7 @@ import hashlib
 import uuid
 import io
 from flask import Flask, render_template, request, session, redirect, url_for, send_file, jsonify, flash
-from gdes import GDES
-
+from gdes import GDES 
 app = Flask(__name__)
 app.secret_key = 'G-DES_SECRET_SESSION_SIGNING_KEY_2026' # HMAC-SHA256 Secret key
 
@@ -19,20 +18,22 @@ os.makedirs(ENCRYPTED_DIR, exist_ok=True)
 # G-DES Symmetric Key (exactly 8 bytes / 64 bits)
 GDES_KEY = b"Cyb3rPnk"
 
-# Setup default credentials with salted hashes if users.json is missing
+# Setup default credentials with salted hashes and recovery keys
 def setup_users():
     if not os.path.exists(USERS_FILE):
-        # Initializing database configurations
+        # Initializing database configurations with default recovery keys
         users = {
             "admin_account": {
                 "salt": "n3on_salt_1",
                 "password_hash": hashlib.sha256("admin123".encode() + "n3on_salt_1".encode()).hexdigest(),
-                "role": "Admin"
+                "role": "Admin",
+                "recovery_key": "GDES-ADMN-RECO-7777"
             },
             "employee_staff": {
                 "salt": "m4g3nta_salt_2",
                 "password_hash": hashlib.sha256("employee123".encode() + "m4g3nta_salt_2".encode()).hexdigest(),
-                "role": "Employee"
+                "role": "Employee",
+                "recovery_key": "GDES-EMPL-RECO-8888"
             }
         }
         with open(USERS_FILE, 'w') as f:
@@ -86,6 +87,45 @@ def login():
             
     return render_template('login.html', error="ACCESS_DENIED: Invalid User ID or Passphrase.")
 
+# Secure Password Reset Overrides
+@app.route('/forgot', methods=['GET', 'POST'])
+def forgot():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        recovery_key = request.form.get('recovery_key')
+        new_password = request.form.get('new_password')
+        
+        if not username or not recovery_key or not new_password:
+            return render_template('forgot.html', error="CREDENTIALS_REQUIRED: Missing inputs.")
+            
+        username_clean = username.strip().lower()
+        recovery_key_clean = recovery_key.strip().upper()
+        
+        with open(USERS_FILE, 'r') as f:
+            users = json.load(f)
+            
+        if username_clean in users:
+            user_data = users[username_clean]
+            # Verify the unique offline recovery key match
+            if user_data.get('recovery_key') == recovery_key_clean:
+                # Generate fresh salt and SHA-256 hash for the new password
+                new_salt = uuid.uuid4().hex[:12]
+                new_hash = hashlib.sha256(new_password.encode() + new_salt.encode()).hexdigest()
+                
+                user_data['salt'] = new_salt
+                user_data['password_hash'] = new_hash
+                
+                users[username_clean] = user_data
+                with open(USERS_FILE, 'w') as f:
+                    json.dump(users, f, indent=4)
+                    
+                # Password reset successful, redirect to login page with notice
+                return render_template('login.html', error="SUCCESS: Passphrase reset. Authenticate now.")
+                
+        return render_template('forgot.html', error="ACCESS_DENIED: Invalid User ID or Recovery Key.")
+        
+    return render_template('forgot.html')
+
 @app.route('/dashboard')
 def dashboard():
     if 'username' not in session:
@@ -132,16 +172,58 @@ def add_user():
     new_salt = uuid.uuid4().hex[:12]
     new_hash = hashlib.sha256(password.encode() + new_salt.encode()).hexdigest()
     
+    # Generate unique 16-character recovery key for the newly added Employee
+    recovery_key = f"GDES-{uuid.uuid4().hex[:4].upper()}-{uuid.uuid4().hex[:4].upper()}-{uuid.uuid4().hex[:4].upper()}"
+    
     users[username_clean] = {
         "salt": new_salt,
         "password_hash": new_hash,
-        "role": "Employee"
+        "role": "Employee",
+        "recovery_key": recovery_key
     }
     
     with open(USERS_FILE, 'w') as f:
         json.dump(users, f, indent=4)
         
-    flash(f"User '{username_clean}' successfully registered as Employee.", "success")
+    flash(f"User '{username_clean}' successfully registered. RECOVERY KEY: {recovery_key}", "success")
+    return redirect(url_for('dashboard'))
+
+# Admin-Only Route: Purge an Employee Account from the database
+@app.route('/delete_user', methods=['POST'])
+def delete_user():
+    if session.get('role') != 'Admin':
+        return "Access Denied: Unauthorized administrative request.", 403
+
+    username = request.form.get('username')
+    if not username:
+        return redirect(url_for('dashboard'))
+        
+    username_clean = username.strip().lower()
+    
+    with open(USERS_FILE, 'r') as f:
+        users = json.load(f)
+        
+    if username_clean in users:
+        if username_clean == session.get('username'):
+            flash("Action blocked: You cannot delete your own active session account.", "danger")
+            return redirect(url_for('dashboard'))
+            
+        # Delete from user accounts database
+        del users[username_clean]
+        with open(USERS_FILE, 'w') as f:
+            json.dump(users, f, indent=4)
+            
+        # Clean up DAC clearances (vault.json) to prevent orphaned user permissions
+        vault_data = load_vault()
+        for file in vault_data:
+            if 'allowed_users' in file and username_clean in file['allowed_users']:
+                file['allowed_users'].remove(username_clean)
+        save_vault(vault_data)
+        
+        flash(f"User account '{username_clean}' successfully purged from node database.", "success")
+    else:
+        flash(f"Purge failed: User '{username_clean}' does not exist.", "danger")
+        
     return redirect(url_for('dashboard'))
 
 # Admin-Only Route: Grant File-Specific Access to specific Employees (DAC / ACL)
@@ -224,6 +306,36 @@ def revoke_access():
     else:
         save_vault(vault_data)
         
+    return redirect(url_for('dashboard'))
+
+# Admin-Only Route: Permanently delete an encrypted file from the server
+@app.route('/delete_file/<filename>')
+def delete_file(filename):
+    if session.get('role') != 'Admin':
+        return "Access Denied: Unauthorized administrative request.", 403
+        
+    vault_data = load_vault()
+    target_meta = next((item for item in vault_data if item['original_name'] == filename), None)
+    
+    if not target_meta:
+        flash("Delete failed: File metadata not found.", "danger")
+        return redirect(url_for('dashboard'))
+        
+    encrypted_filename = target_meta['encrypted_filename']
+    encrypted_path = os.path.join(ENCRYPTED_DIR, encrypted_filename)
+    
+    # 1. Physical Cleanup: Delete file from local server disk
+    if os.path.exists(encrypted_path):
+        try:
+            os.remove(encrypted_path)
+        except Exception as e:
+            flash(f"Partial delete: Metadata purged, but file deletion failed. {str(e)}", "danger")
+            
+    # 2. Metadata Cleanup: Remove file from database index
+    vault_data = [item for item in vault_data if item['original_name'] != filename]
+    save_vault(vault_data)
+    
+    flash(f"File '{filename}' successfully purged from server storage.", "success")
     return redirect(url_for('dashboard'))
 
 # Admin-Only File Uploader Route

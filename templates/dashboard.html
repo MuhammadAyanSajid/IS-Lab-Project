@@ -78,13 +78,13 @@
             <div class="col-md-4 text-md-end mt-3 mt-md-0">
                 <span class="mono-text meta-text small"><span class="status-indicator me-2"></span> VAULT_STATUS: ONLINE</span>
                 <br>
-                <span class="mono-text meta-text small">SYS_TIME: 2026-06-07</span>
+                <span class="mono-text meta-text small">SYS_TIME: <span id="cyber-clock">0000-00-00 00:00:00</span></span>
             </div>
         </div>
 
         <div class="row g-4">
             
-            <!-- SECTION A: Uploader & User Registration (Enforced RBAC via Jinja) -->
+            <!-- SECTION A: Uploader, User Registration, and Employee Management (Enforced RBAC via Jinja) -->
             <div class="col-lg-4 {% if current_role != 'Admin' %}d-none{% endif %}" id="uploader-section">
                 <!-- Encryption Card -->
                 <div class="card card-custom card-magenta p-4 mb-4">
@@ -117,7 +117,7 @@
                 </div>
 
                 <!-- Admin Control Panel: Add New Employee Account -->
-                <div class="card card-custom card-magenta p-4">
+                <div class="card card-custom card-magenta p-4 mb-4">
                     <h5 class="fw-bold mb-3 card-header-magenta"><i class="bi bi-person-plus-fill me-2"></i>ADD_NEW_EMPLOYEE</h5>
                     <p class="text-muted small">Register a new system user node. Newly created profiles automatically default to Employee permissions.</p>
                     
@@ -132,6 +132,42 @@
                         </div>
                         <button type="submit" class="btn btn-cyber-magenta w-100 py-2 mt-2"><i class="bi bi-person-plus-fill"></i> REGISTER_USER</button>
                     </form>
+                </div>
+
+                <!-- Admin Control Panel: Active Employees List -->
+                <div class="card card-custom card-magenta p-4">
+                    <h5 class="fw-bold mb-3 card-header-magenta"><i class="bi bi-people-fill me-2"></i>ACTIVE_EMPLOYEES</h5>
+                    <p class="text-muted small">Manage active employee accounts. Purging a profile revokes all of their system credentials and access.</p>
+                    <div class="table-responsive mt-3">
+                        <table class="table table-custom align-middle mb-0">
+                            <thead>
+                                <tr class="text-muted small">
+                                    <th>USER_ID</th>
+                                    <th class="text-end">PURGE</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if employees %}
+                                    {% for emp in employees %}
+                                    <tr>
+                                        <td class="font-monospace fw-bold text-info">{{ emp }}</td>
+                                        <td class="text-end">
+                                            <!-- Access revocation form -->
+                                            <form action="/delete_user" method="POST" class="d-inline">
+                                                <input type="hidden" name="username" value="{{ emp }}">
+                                                <button type="submit" class="btn-link-cyber p-0 border-0 bg-transparent text-danger small" title="Permanently delete employee account {{ emp }}">&times;</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="2" class="text-center text-muted small py-3">No active Employee nodes registered.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -211,12 +247,21 @@
                                                 <i class="bi bi-eye"></i> INSPECT
                                             </button>
                                             
-                                            <button class="btn btn-sm btn-cyber-cyan py-1 px-2 decrypt-trigger" 
+                                            <button class="btn btn-sm btn-cyber-cyan py-1 px-2 me-1 decrypt-trigger" 
                                                     data-filename="{{ file.original_name }}" 
                                                     data-allowed="{{ 'true' if (current_role == 'Admin' or current_user in file.allowed_users) else 'false' }}"
                                                     title="Decrypt and Download original file">
                                                 <i class="bi bi-unlock"></i> DOWNLOAD
                                             </button>
+                                            
+                                            {% if current_role == 'Admin' %}
+                                            <!-- File Purge button -->
+                                            <button class="btn btn-sm btn-outline-danger py-1 px-2 delete-file-trigger" 
+                                                    data-filename="{{ file.original_name }}"
+                                                    title="Permanently purge file from server">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                            {% endif %}
                                         </td>
                                     </tr>
                                     {% endfor %}

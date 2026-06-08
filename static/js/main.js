@@ -120,12 +120,11 @@ function startCyberClock() {
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const seconds = String(now.getSeconds()).padStart(2, '0');
         
-        // Output ticking standard timestamp format
         clockEl.textContent = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     }
     
     updateClock();
-    setInterval(updateClock, 1000); // Trigger callback once per second
+    setInterval(updateClock, 1000); 
 }
 
 // Event Delegation: Clean method to capture click events from templates without syntax parsing warnings
@@ -144,5 +143,15 @@ document.addEventListener('click', (event) => {
     if (inspectTrigger) {
         const filename = inspectTrigger.getAttribute('data-filename');
         triggerInspect(filename);
+        return;
+    }
+
+    // Check Delete File trigger (Requests confirmation prior to physical node purge)
+    const deleteFileTrigger = event.target.closest('.delete-file-trigger');
+    if (deleteFileTrigger) {
+        const filename = deleteFileTrigger.getAttribute('data-filename');
+        if (confirm(`ARE YOU SURE YOU WANT TO PERMANENTLY PURGE "${filename}" FROM THE STORAGE VOLUMES?`)) {
+            window.location.href = `/delete_file/${encodeURIComponent(filename)}`;
+        }
     }
 });
