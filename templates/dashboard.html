@@ -44,7 +44,7 @@
                 <div class="me-3 text-end d-none d-sm-block">
                     <div class="small text-muted user-label">CURRENT_USER</div>
                     <span class="fw-bold text-white font-monospace">
-                        {{ 'admin_account' if current_role == 'Admin' else 'employee_staff' }}
+                        {{ 'admin_account' if current_role == 'Admin' else current_user }}
                     </span>
                 </div>
                 <div class="me-3">
@@ -176,9 +176,30 @@
                                         </td>
                                         <td><span class="badge bg-transparent border border-info text-info">{{ file.blocks }} Blocks</span></td>
                                         <td><span class="mono-text">{{ file.size }}</span></td>
-                                        <td><span class="badge bg-transparent border text-danger badge-clearance">ADMIN_CLEARANCE</span></td>
+                                        <td>
+                                            <!-- Access Policy Field (Lists users + shows dynamic Admin Form) -->
+                                            {% if not file.allowed_users %}
+                                                <span class="badge bg-transparent border text-danger badge-clearance">ADMIN_CLEARANCE</span>
+                                            {% else %}
+                                                <span class="badge bg-transparent border text-warning border-warning policy-glow">
+                                                    ALLOWED: {{ file.allowed_users | join(', ') }}
+                                                </span>
+                                            {% endif %}
+                                            
+                                            {% if current_role == 'Admin' %}
+                                            <!-- Mini-Grant Form for DAC permissions -->
+                                            <form action="/grant_access" method="POST" class="d-inline-flex align-items-center ms-2">
+                                                <input type="hidden" name="filename" value="{{ file.original_name }}">
+                                                <input type="text" name="target_user" class="form-control form-control-cyber form-control-sm grant-input text-center font-monospace" placeholder="+ employee" required title="Enter Employee user ID to grant access">
+                                                <button type="submit" class="btn btn-cyber-magenta btn-sm btn-grant ms-1" title="Grant Decryption Access">+</button>
+                                            </form>
+                                            {% endif %}
+                                        </td>
                                         <td class="text-end">
-                                            <button class="btn btn-sm btn-cyber-cyan py-1 px-3" onclick="triggerDecrypt('{{ file.original_name }}')">
+                                            <!-- Clean HTML5 data-attributes to prevent JS parsing warnings inside templates -->
+                                            <button class="btn btn-sm btn-cyber-cyan py-1 px-3 decrypt-trigger" 
+                                                    data-filename="{{ file.original_name }}" 
+                                                    data-allowed="{{ 'true' if (current_role == 'Admin' or current_user in file.allowed_users) else 'false' }}">
                                                 <i class="bi bi-unlock"></i> DECRYPT
                                             </button>
                                         </td>

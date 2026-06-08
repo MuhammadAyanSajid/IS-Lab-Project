@@ -196,3 +196,19 @@ p.text-muted {
 /* Access Denied Dialog Overlay */
 .access-denied-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(3, 0, 30, 0.95); z-index: 1050; justify-content: center; align-items: center; }
 .access-denied-box { max-width: 500px; text-align: center; border: 3px solid var(--neon-magenta); padding: 2.5rem; background-color: #120010; border-radius: 12px; box-shadow: 0 0 30px var(--neon-magenta); }
+
+/* Inline DAC Grant Form */
+.grant-input {
+    width: 90px;
+    font-size: 0.8rem;
+    padding: 2px 5px !important;
+}
+
+.btn-grant {
+    padding: 2px 6px !important;
+    font-size: 0.8rem;
+}
+
+.policy-glow {
+    text-shadow: 0 0 3px var(--neon-magenta);
+}

@@ -44,11 +44,11 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // Controls modal displaying completely using Bootstrap class transitions
-function triggerDecrypt(filename) {
+function triggerDecrypt(filename, isAllowed) {
     const deniedOverlay = document.getElementById('deniedOverlay');
     const successOverlay = document.getElementById('successOverlay');
 
-    if (activeRole !== "Admin") {
+    if (!isAllowed) {
         deniedOverlay.classList.remove('d-none');
         deniedOverlay.classList.add('d-flex');
     } else {
@@ -72,3 +72,13 @@ function closeSuccessOverlay() {
     successOverlay.classList.add('d-none');
     successOverlay.classList.remove('d-flex');
 }
+
+// Event Delegation: Clean, linter-friendly method to capture click events from templates
+document.addEventListener('click', (event) => {
+    const trigger = event.target.closest('.decrypt-trigger');
+    if (trigger) {
+        const filename = trigger.getAttribute('data-filename');
+        const isAllowed = trigger.getAttribute('data-allowed') === 'true';
+        triggerDecrypt(filename, isAllowed);
+    }
+});

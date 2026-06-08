@@ -92,12 +92,11 @@ def dashboard():
     if 'username' not in session:
         return redirect(url_for('home'))
     files = load_vault()
-    return render_template('dashboard.html', files=files, current_role=session.get('role', 'Admin'))
+    return render_template('dashboard.html', files=files, current_role=session.get('role', 'Admin'), current_user=session.get('username'))
 
 # Admin-Only Route: Register New Employees
 @app.route('/add_user', methods=['POST'])
 def add_user():
-    # Server-Side RBAC Enforcement: Is the user an Admin?
     if session.get('role') != 'Admin':
         return "Access Denied: Unauthorized administrative request.", 403
 
@@ -117,7 +116,6 @@ def add_user():
         flash(f"Registration failed: User '{username_clean}' already exists.", "danger")
         return redirect(url_for('dashboard'))
         
-    # Generate unique salt and SHA-256 hash for the new Employee
     new_salt = uuid.uuid4().hex[:12]
     new_hash = hashlib.sha256(password.encode() + new_salt.encode()).hexdigest()
     
@@ -131,6 +129,53 @@ def add_user():
         json.dump(users, f, indent=4)
         
     flash(f"User '{username_clean}' successfully registered as Employee.", "success")
+    return redirect(url_for('dashboard'))
+
+# Admin-Only Route: Grant File-Specific Access to specific Employees (DAC / ACL)
+@app.route('/grant_access', methods=['POST'])
+def grant_access():
+    if session.get('role') != 'Admin':
+        return "Access Denied: Unauthorized administrative request.", 403
+
+    filename = request.form.get('filename')
+    target_user = request.form.get('target_user')
+    
+    if not filename or not target_user:
+        flash("Authorization failed: Missing inputs.", "danger")
+        return redirect(url_for('dashboard'))
+        
+    target_user_clean = target_user.strip().lower()
+    
+    # Verify that the target Employee actually exists in users.json
+    with open(USERS_FILE, 'r') as f:
+        users = json.load(f)
+        
+    if target_user_clean not in users:
+        flash(f"Authorization failed: Target user '{target_user_clean}' does not exist.", "danger")
+        return redirect(url_for('dashboard'))
+        
+    vault_data = load_vault()
+    file_found = False
+    
+    for file in vault_data:
+        if file['original_name'] == filename:
+            file_found = True
+            # Initialize allowed_users array if missing
+            if 'allowed_users' not in file:
+                file['allowed_users'] = []
+            
+            if target_user_clean in file['allowed_users']:
+                flash(f"User '{target_user_clean}' already possesses access clearance.", "danger")
+            else:
+                file['allowed_users'].append(target_user_clean)
+                flash(f"Access granted: '{target_user_clean}' can now decrypt '{filename}'.", "success")
+            break
+            
+    if not file_found:
+        flash("Authorization failed: File not found.", "danger")
+    else:
+        save_vault(vault_data)
+        
     return redirect(url_for('dashboard'))
 
 # Admin-Only File Uploader Route
@@ -167,7 +212,8 @@ def upload():
         "encrypted_filename": encrypted_filename,
         "hash": file_hash,
         "blocks": len(encrypted_bytes) // 16,
-        "size": f"{len(file_bytes) / 1024:.1f} KB"
+        "size": f"{len(file_bytes) / 1024:.1f} KB",
+        "allowed_users": []  # Initialize empty file-access list
     })
     save_vault(vault_data)
     
@@ -177,9 +223,8 @@ def upload():
 # Decrypt File Route (Verifies permissions and matches integrity hash)
 @app.route('/decrypt/<filename>')
 def decrypt(filename):
-    # Server-Side RBAC Enforcement
-    if session.get('role') != 'Admin':
-        return "Access Denied: You do not possess decryption privileges.", 403
+    if 'username' not in session:
+        return redirect(url_for('home'))
 
     vault_data = load_vault()
     target_meta = next((item for item in vault_data if item['original_name'] == filename), None)
@@ -187,6 +232,12 @@ def decrypt(filename):
     if not target_meta:
         return "File metadata not found in database.", 404
         
+    # Hybrid RBAC + DAC Verification Check:
+    # Allowed if User is Admin OR if User's specific username is explicitly allowed
+    allowed_list = target_meta.get('allowed_users', [])
+    if session.get('role') != 'Admin' and session.get('username') not in allowed_list:
+        return "Access Denied: You do not possess decryption clearances.", 403
+
     encrypted_path = os.path.join(ENCRYPTED_DIR, target_meta['encrypted_filename'])
     
     with open(encrypted_path, 'rb') as f:
