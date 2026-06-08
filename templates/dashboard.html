@@ -187,10 +187,15 @@
                                             {% endif %}
                                             
                                             {% if current_role == 'Admin' %}
-                                            <!-- Mini-Grant Form for DAC permissions -->
+                                            <!-- Dynamic Dropdown Form for DAC permissions -->
                                             <form action="/grant_access" method="POST" class="d-inline-flex align-items-center ms-2">
                                                 <input type="hidden" name="filename" value="{{ file.original_name }}">
-                                                <input type="text" name="target_user" class="form-control form-control-cyber form-control-sm grant-input text-center font-monospace" placeholder="+ employee" required title="Enter Employee user ID to grant access">
+                                                <select name="target_user" class="form-control form-control-cyber form-control-sm grant-input text-center font-monospace" required title="Select Employee user ID to grant access">
+                                                    <option value="" disabled selected>+ employee</option>
+                                                    {% for emp in employees %}
+                                                        <option value="{{ emp }}">{{ emp }}</option>
+                                                    {% endfor %}
+                                                </select>
                                                 <button type="submit" class="btn btn-cyber-magenta btn-sm btn-grant ms-1" title="Grant Decryption Access">+</button>
                                             </form>
                                             {% endif %}

@@ -92,8 +92,21 @@ def dashboard():
     if 'username' not in session:
         return redirect(url_for('home'))
     files = load_vault()
-    return render_template('dashboard.html', files=files, current_role=session.get('role', 'Admin'), current_user=session.get('username'))
-
+    
+    # Load users to dynamically populate the employee access list
+    with open(USERS_FILE, 'r') as f:
+        users = json.load(f)
+    
+    # Extract only accounts categorized under the 'Employee' policy
+    employees = [username for username, data in users.items() if data.get('role') == 'Employee']
+    
+    return render_template(
+        'dashboard.html', 
+        files=files, 
+        current_role=session.get('role', 'Admin'), 
+        current_user=session.get('username'),
+        employees=employees # Passed directly to the frontend template
+    )
 # Admin-Only Route: Register New Employees
 @app.route('/add_user', methods=['POST'])
 def add_user():

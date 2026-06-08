@@ -212,3 +212,9 @@ p.text-muted {
 .policy-glow {
     text-shadow: 0 0 3px var(--neon-magenta);
 }
+
+/* Styled custom select option dropdowns */
+select.form-control-cyber option {
+    background-color: #111827; /* Dark background for options */
+    color: var(--text-primary);
+}
